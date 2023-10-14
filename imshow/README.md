@@ -1,6 +1,10 @@
 Run `cv2.imshow` in docker (in Mac OSX 13.5.1 (22G90))
 =
 
+Dependencies
+==
+- Xquartz: `brew install --cask xquartz`
+
 Steps
 ==
 1. Create a container and connect its display to the host
