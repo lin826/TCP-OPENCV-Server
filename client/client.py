@@ -10,7 +10,9 @@ import threading
 from av import VideoFrame
 from aiortc.contrib.signaling import BYE, TcpSocketSignaling
 
-CV_DP = 10
+# CV_DP: Inverse ratio of the accumulator resolution to the image resolution.
+CV_DP = 5
+# CV_MINDIST: Minimum distance between the centers of the detected circles.
 CV_MINDIST = 10
 
 logger = logging.Logger("ping")
@@ -30,10 +32,10 @@ def process_a():
         circles = cv2.HoughCircles(frame, cv2.HOUGH_GRADIENT, dp=CV_DP, minDist=CV_MINDIST)
 
         global timestamp, ball_x, ball_y
-        if circles is not None:
-            x_diff = circles[0][0][0] - ball_x.value
-            y_diff = circles[0][0][1] - ball_y.value
         with timestamp.get_lock() and ball_x.get_lock() and ball_y.get_lock():
+            if circles is not None:
+                x_diff = circles[0][0][0] - ball_x.value
+                y_diff = circles[0][0][1] - ball_y.value
             timestamp.value = t
             ball_x.value += int(x_diff)
             ball_y.value += int(y_diff)

@@ -18,12 +18,13 @@ record = dict()
 class CircleFrame():
     def __init__(self):
         # Initialize the window size
-        self.w = 1024
-        self.h = 960
-        self.rgb_array: np.ndarray = 255 * np.ones((self.h, self.w, 3), dtype='uint8') # RGB
+        self.w = 960
+        self.h = 480
+         # Black background supporting RGB
+        self.rgb_array: np.ndarray = np.zeros((self.h, self.w, 3), dtype='uint8')
 
     def add_circle(self, x: int, y: int, r: int=20, 
-                   color=(0, 0, 0), thickness:int=(-1)):
+                   color=(255, 255, 255), thickness:int=(-1)):
         cv2.circle(img=self.rgb_array, center=(x, y), 
             radius=r, color=color, thickness=thickness)
         return self
@@ -98,7 +99,7 @@ async def run_offer():
     
     def on_message(message):
         # Calculate error and display
-        logger.warning(f"{channel.label} - message received: {message}")
+        logger.info(f"{channel.label} - message received: {message}")
         data = json.loads(message)
         global record
         if data['pts'] not in record:
@@ -108,12 +109,12 @@ async def run_offer():
         # Mean Square Error (MSE)
         record_xy = record.pop(data['pts'])
         err = np.mean((record_xy - np.array([data['x'], data['y']]))**2)
-        print(data, record_xy, err)
+        logger.warning(f"MSE={err}, between {(data['x'], data['y'])} and {record_xy}")
         # Redness reflects the value of MSE.
-        # coloar_shift = min(255//err, 200)
-        circle_frame = CircleFrame().add_circle(data['x'], data['y'])
+        color = [max(100, 255 - err)] * 2 + [255]
+        circle_frame = CircleFrame().add_circle(data['x'], data['y'], color=color)
         cv2.imshow("server", circle_frame.rgb_array)
-        cv2.waitKey(1)
+        cv2.waitKey(2)
     channel.add_listener("message", on_message)
 
     @pc.on("connectionstatechange")
