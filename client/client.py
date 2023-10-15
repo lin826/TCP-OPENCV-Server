@@ -23,12 +23,8 @@ CV_DP = 5
 CV_MINDIST = 10
 
 logger = logging.Logger("ping")
-frame_queue = multiprocessing.Queue() # Queues are thread and process safe.
-ball_x = multiprocessing.Value(ctypes.c_int, 0)
-ball_y = multiprocessing.Value(ctypes.c_int, 0)
-timestamp = multiprocessing.Value(ctypes.c_int, 0)
 
-def process_a():
+def process_a(frame_queue, ball_x, ball_y, timestamp):
     x_diff, y_diff = 0, 0
     while True:
         (t, frame) = frame_queue.get()
@@ -38,7 +34,6 @@ def process_a():
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         circles = cv2.HoughCircles(frame, cv2.HOUGH_GRADIENT, dp=CV_DP, minDist=CV_MINDIST)
 
-        global timestamp, ball_x, ball_y
         with timestamp.get_lock() and ball_x.get_lock() and ball_y.get_lock():
             if circles is not None:
                 x_diff = circles[0][0][0] - ball_x.value
@@ -46,7 +41,8 @@ def process_a():
             timestamp.value = t
             ball_x.value += int(x_diff)
             ball_y.value += int(y_diff)
-        
+
+
 async def consume_signaling(
         pc: aiortc.RTCPeerConnection, 
         signaling: TcpSocketSignaling,
@@ -95,6 +91,16 @@ async def run_answer():
             await signaling.close()
             pcs.discard(pc)
 
+    frame_queue = multiprocessing.Queue() # Queues are thread and process safe.
+    ball_x = multiprocessing.Value(ctypes.c_int, 0)
+    ball_y = multiprocessing.Value(ctypes.c_int, 0)
+    timestamp = multiprocessing.Value(ctypes.c_int, 0)
+    multiprocessing.Process(
+        target=process_a, 
+        args=(frame_queue, ball_x, ball_y, timestamp),
+        daemon=True,
+    ).start()
+
     while await consume_signaling(pc, signaling):
         while pc_track:
             frame = await pc_track.recv()
@@ -129,11 +135,6 @@ if __name__ == "__main__":
         logging.basicConfig(level=logging.DEBUG)
     else:
         logging.basicConfig(level=logging.INFO)
-
-    threading.Thread(
-        target=process_a, 
-        daemon=True,
-    ).start()
 
     # run event loop
     loop = asyncio.get_event_loop()
