@@ -53,8 +53,8 @@ async def test_BallBounce_radius():
 @pytest.mark.asyncio     
 async def test_consume_signaling_exit():
     # Arrange
-    mock_pc = MockPC(defaultdict(None))
-    mock_bye_signaling = MockTCPSignaling({'receive': BYE}, defaultdict(None))
+    mock_pc = MockPC()
+    mock_bye_signaling = MockTCPSignaling({'receive': BYE})
     # Act
     response = await consume_signaling(mock_pc, mock_bye_signaling)
     # Assert
@@ -63,30 +63,32 @@ async def test_consume_signaling_exit():
 @pytest.mark.asyncio     
 async def test_consume_signaling_offer():
     mock_description = aiortc.RTCSessionDescription
-    mock_pc = MockPC({'setRemoteDescription':mock_description})
-    mock_description_signaling = MockTCPSignaling({'receive': mock_description}, defaultdict(None))
+    mock_pc = MockPC(assertions={'setRemoteDescription':mock_description})
+    mock_description_signaling = MockTCPSignaling({'receive': mock_description})
     response = await consume_signaling(mock_pc, mock_description_signaling)
     assert response == True
 
 @pytest.mark.asyncio     
 async def test_consume_signaling_candidate():
     mock_candidate = aiortc.RTCIceCandidate
-    mock_pc = MockPC({'addIceCandidate':mock_candidate})
-    mock_candidate_signaling = MockTCPSignaling({'receive': mock_candidate}, defaultdict(None))
+    mock_pc = MockPC(assertions={'addIceCandidate':mock_candidate})
+    mock_candidate_signaling = MockTCPSignaling({'receive': mock_candidate})
     response = await consume_signaling(mock_pc, mock_candidate_signaling)
     assert response == True
 
 @pytest.mark.asyncio
 async def test_on_shutdown():
     global pcs
-    pcs.add(MockPC({}))
-    pcs.add(MockPC({}))
+    pcs.add(MockPC())
+    pcs.add(MockPC())
     assert len(pcs) == 2
     await on_shutdown()
     assert len(pcs) == 0
 
 class MockPC(aiortc.RTCPeerConnection):
-    def __init__(self, assertions: dict) -> None:
+    def __init__(self, stubs: dict=defaultdict(None), 
+                 assertions: dict=defaultdict(None)) -> None:
+        self.stubs = stubs
         self.assertions = assertions
     async def setRemoteDescription(self, obj):
         assert obj == self.assertions['setRemoteDescription']
@@ -96,7 +98,8 @@ class MockPC(aiortc.RTCPeerConnection):
         pass
 
 class MockTCPSignaling(TcpSocketSignaling):
-    def __init__(self, stubs: dict, assertions: dict) -> None:
+    def __init__(self, stubs: dict=defaultdict(None), 
+                 assertions: dict=defaultdict(None)) -> None:
         self.stubs = stubs
         self.assertions = assertions
     async def receive(self):
