@@ -1,3 +1,13 @@
+"""
+Ball Bounce Client
+
+This module provides a client for the Ball Bounce demo, which detects the position
+of a ball in a video stream using OpenCV and communicates the results using aiortc.
+
+Attributes:
+    CV_DP (int): Inverse ratio of the accumulator resolution to the image resolution.
+    CV_MINDIST (int): Minimum distance between the centers of the detected circles.
+"""
 import argparse
 import asyncio
 import ctypes
@@ -21,9 +31,22 @@ CV_DP = 5
 # CV_MINDIST: Minimum distance between the centers of the detected circles.
 CV_MINDIST = 10
 
-logger = logging.Logger("ping")
+logger = logging.Logger("client")
 
 def process_a(frame_queue: multiprocessing.Queue, ball_x, ball_y, timestamp):
+    """
+    Processes a video frame to locate a ball, and then updates its position.
+
+    The function uses the Hough Circle Transformation method in OpenCV to detect the 
+    circle representing the ball and calculates the difference in the position of the
+    ball to update its coordinates.
+
+    Args:
+        frame_queue (multiprocessing.Queue): Queue storing the video frames.
+        ball_x (multiprocessing.Value): X-coordinate of the ball's center.
+        ball_y (multiprocessing.Value): Y-coordinate of the ball's center.
+        timestamp (multiprocessing.Value): Timestamp of the current frame.
+    """
     x_diff, y_diff = 0, 0
     while True:
         (t, frame) = frame_queue.get()
@@ -46,6 +69,16 @@ async def consume_signaling(
         pc: aiortc.RTCPeerConnection, 
         signaling: TcpSocketSignaling,
 ) -> bool:
+    """
+    Consumes signaling messages, processing offers, answers, and ICE candidates.
+
+    Args:
+        pc (aiortc.RTCPeerConnection): The peer connection instance.
+        signaling (TcpSocketSignaling): The signaling instance.
+
+    Returns:
+        bool: False if a BYE message is received, indicating that the session should be terminated.
+    """
     obj = await signaling.receive()
     if obj is BYE:
         logger.debug("Exiting")
@@ -68,6 +101,14 @@ async def consume_signaling(
 pc_channel: aiortc.RTCDataChannel|None = None
 pc_track: aiortc.VideoStreamTrack|None = None
 async def run_answer():
+    """
+    Initializes the RTC peer connection, establishes the data channel and track handlers, 
+    and processes the video stream to detect the position of the ball.
+
+    The function sets up signaling, data channel, and track event handlers, starts a
+    separate process to handle OpenCV frame processing, and continuously receives and
+    processes video frames.
+    """
     signaling = TcpSocketSignaling(args.host, args.port)
     pc = aiortc.RTCPeerConnection()
     await signaling.connect()
@@ -118,7 +159,9 @@ async def run_answer():
 
 pcs = set() 
 async def on_shutdown():
-    # close peer connections
+    """
+    Asynchronously handles the shutdown process, ensuring that all peer connections are closed.
+    """
     coros = [pc.close() for pc in pcs]
     await asyncio.gather(*coros)
     pcs.clear()
@@ -126,6 +169,11 @@ async def on_shutdown():
 
 
 if __name__ == "__main__":
+    """
+    Parses command-line arguments, sets up logging, and runs the event loop for the ball bounce 
+    client demo. The client establishes a connection to a server, receives a video stream, and 
+    processes each frame to detect the position of a ball.
+    """
     parser = argparse.ArgumentParser(description="Ball bounce client demo")
     parser.add_argument("--host", default="0.0.0.0", help="Host for HTTP server (default: 0.0.0.0)")
     parser.add_argument("--port", type=int, default=8080, help="Port for HTTP server (default: 8080)")
