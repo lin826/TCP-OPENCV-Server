@@ -1,12 +1,8 @@
-run-server:
-	python3 server/server.py
-
-run-client:
-	python3 client/client.py
+test:
+	pytest .
 
 init:
 	docker pull ubuntu:22.04
-	kind create cluster --name demo
 
 build:
 	docker build ./client -t client
@@ -15,13 +11,16 @@ build:
 deploy: build deploy-server deploy-client
 
 deploy-server:
-	# kind load docker-image server:latest --name demo
 	kubectl apply -f server/deployment.yaml
+	sleep 10
 
 deploy-client:
-	# kind load docker-image client:latest --name demo
 	kubectl apply -f client/deployment.yaml
 
 clean:
 	kubectl delete -f server/deployment.yaml
 	kubectl delete -f client/deployment.yaml
+
+debug: build
+	kubectl delete -f client/deployment.yaml
+	kubectl apply -f client/deployment.yaml
