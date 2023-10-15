@@ -1,22 +1,39 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: demo-server
+  name: server-deployment
   labels:
     app: server
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: demo-server
+      app: server
   template:
     metadata:
       labels:
-        app: demo-server
+        app: server
     spec:
       containers:
       - name: server
         image: server
         imagePullPolicy: Never
-        ports:
-        - containerPort: 8080
+        env:
+          - name: DISPLAY
+            value: "10.31.151.4:0"
+        command: ["python3.11"]
+        args: ["server.py"] 
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: server-service
+spec:
+  type: ClusterIP
+  selector:
+    app: server
+  ports:
+  - protocol: TCP
+    port: 8080

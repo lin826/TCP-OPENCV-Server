@@ -1,22 +1,25 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: demo-client
+  name: client-deployment
   labels:
     app: client
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: demo-client
+      app: client
   template:
     metadata:
       labels:
-        app: demo-client
+        app: client
     spec:
       containers:
       - name: client
         image: client
         imagePullPolicy: Never
-        ports:
-        - containerPort: 8080
+        env:
+          - name: DISPLAY
+            value: "10.31.151.4:0"
+        command: ["bash"]
+        args: ["launch_client.sh", "server-service"]

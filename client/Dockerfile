@@ -22,6 +22,7 @@ RUN apt-get install -y \
 RUN apt-get update
 RUN apt-get install x11-apps -y
 RUN apt-get install iputils-ping -ys
+RUN apt-get install vim -y
 
 #install aiortc and other python libs
 COPY ./requirements.txt ./
