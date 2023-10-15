@@ -20,7 +20,7 @@ spec:
         imagePullPolicy: Never
         env:
           - name: DISPLAY
-            value: "10.31.151.4:0"
+            value: "$DISPLAY"
         command: ["python3.11"]
         args: ["server.py"] 
 

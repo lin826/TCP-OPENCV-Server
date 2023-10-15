@@ -1,5 +1,6 @@
 test:
-	pytest .
+	pytest server/test_server.py
+	pytest client/test_client.py
 
 init:
 	docker pull ubuntu:22.04
@@ -11,11 +12,11 @@ build:
 deploy: build deploy-server deploy-client
 
 deploy-server:
-	kubectl apply -f server/deployment.yaml
+	DISPLAY=${XSERVER_IP}:0 envsubst < server/deployment.yaml | kubectl apply -f -
 	sleep 10
 
-deploy-client:
-	kubectl apply -f client/deployment.yaml
+deploy-client:	
+	DISPLAY=${XSERVER_IP}:0 envsubst < client/deployment.yaml | kubectl apply -f -
 
 clean:
 	kubectl delete -f server/deployment.yaml

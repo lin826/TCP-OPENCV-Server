@@ -20,6 +20,6 @@ spec:
         imagePullPolicy: Never
         env:
           - name: DISPLAY
-            value: "10.31.151.4:0"
+            value: "$DISPLAY"
         command: ["bash"]
         args: ["launch_client.sh", "server-service"]
