@@ -1,4 +1,3 @@
-import aiortc
 import argparse
 import asyncio
 import json
@@ -12,6 +11,7 @@ HACK: It's necessary to run cv2.imshow once before importing VideoFrame and aior
 """
 cv2.imshow("server", np.zeros((50, 50, 3)))
 
+import aiortc
 from av import VideoFrame
 from aiortc.contrib.signaling import BYE, TcpSocketSignaling
 
@@ -63,8 +63,9 @@ class BallBounce(aiortc.VideoStreamTrack):
         # Use cv2 to create the image/frame.
         await self._ball_update()
         frame = CircleFrame().add_circle(self.x, self.y, self.radius).to_video_frame()
-        pts, _time_base = await self.next_timestamp()
+        pts,  time_base = await self.next_timestamp()
         frame.pts = pts
+        frame.time_base = time_base
         record[pts] = np.array([self.x, self.y])
         return frame
 
