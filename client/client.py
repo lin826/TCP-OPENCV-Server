@@ -4,6 +4,13 @@ import ctypes
 import json
 import logging
 import cv2
+import numpy as np
+
+"""
+HACK: It's necessary to run cv2.imshow once before importing VideoFrame and aiortc when deploying on dockers
+"""
+cv2.imshow("client", np.zeros((50, 50, 3)))
+
 import aiortc
 import multiprocessing
 import threading

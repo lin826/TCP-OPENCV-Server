@@ -6,6 +6,12 @@ import uuid
 import cv2
 import random
 import numpy as np
+
+"""
+HACK: It's necessary to run cv2.imshow once before importing VideoFrame and aiortc when deploying on dockers
+"""
+cv2.imshow("server", np.zeros((50, 50, 3)))
+
 from av import VideoFrame
 from aiortc import RTCIceCandidate, RTCPeerConnection, RTCSessionDescription, VideoStreamTrack
 from aiortc.contrib.signaling import BYE, TcpSocketSignaling
