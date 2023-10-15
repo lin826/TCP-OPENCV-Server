@@ -1,8 +1,8 @@
+import aiortc
 import argparse
 import asyncio
 import json
 import logging
-import uuid
 import cv2
 import random
 import numpy as np
@@ -13,7 +13,6 @@ HACK: It's necessary to run cv2.imshow once before importing VideoFrame and aior
 cv2.imshow("server", np.zeros((50, 50, 3)))
 
 from av import VideoFrame
-from aiortc import RTCIceCandidate, RTCPeerConnection, RTCSessionDescription, VideoStreamTrack
 from aiortc.contrib.signaling import BYE, TcpSocketSignaling
 
 DATA_CHANNEL = "dev-demo"
@@ -39,7 +38,7 @@ class CircleFrame():
         return VideoFrame.from_ndarray(self.rgb_array)
 
 
-class BallBounce(VideoStreamTrack):
+class BallBounce(aiortc.VideoStreamTrack):
     def __init__(self):
         super().__init__()
         self.frame = CircleFrame()
@@ -59,31 +58,30 @@ class BallBounce(VideoStreamTrack):
             self.y_shift *= -1
         self.y += self.y_shift
 
-    async def recv(self):
+    async def recv(self) -> VideoFrame:
         # Generate and return the frame of the ball bouncing.
         # Use cv2 to create the image/frame.
         await self._ball_update()
         frame = CircleFrame().add_circle(self.x, self.y, self.radius).to_video_frame()
-        pts, time_base = await self.next_timestamp()
+        pts, _time_base = await self.next_timestamp()
         frame.pts = pts
-        frame.time_base = time_base
         record[pts] = np.array([self.x, self.y])
         return frame
 
 
-async def consume_signaling(pc, signaling):
+async def consume_signaling(pc: aiortc.RTCPeerConnection, signaling: TcpSocketSignaling):
     obj = await signaling.receive()
     if obj is BYE:
         await signaling.close()
         return False
-    elif isinstance(obj, RTCSessionDescription):
+    elif isinstance(obj, aiortc.RTCSessionDescription):
         await pc.setRemoteDescription(obj)
-    elif isinstance(obj, RTCIceCandidate):
+    elif isinstance(obj, aiortc.RTCIceCandidate):
         await pc.addIceCandidate(obj)
     return True
 
 
-pcs = set() 
+pcs: set[aiortc.RTCPeerConnection] = set() 
 async def on_shutdown():
     # close peer connections
     coros = [pc.close() for pc in pcs]
@@ -92,7 +90,7 @@ async def on_shutdown():
 
 
 async def run_offer():
-    pc = RTCPeerConnection()
+    pc = aiortc.RTCPeerConnection()
     channel = pc.createDataChannel(DATA_CHANNEL)
     pc.addTrack(BallBounce())
     pcs.add(pc)
@@ -132,6 +130,7 @@ async def run_offer():
 
     while True:
         await consume_signaling(pc, signaling)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Ball bounce server demo")

@@ -7,13 +7,12 @@ import cv2
 import numpy as np
 
 """
-HACK: It's necessary to run cv2.imshow once before importing VideoFrame and aiortc when deploying on dockers
+HACK: It's necessary to run cv2.imshow once before importing VideoFrame and aiortc when deploying on Docker
 """
 cv2.imshow("client", np.zeros((50, 50, 3)))
 
 import aiortc
 import multiprocessing
-import threading
 from av import VideoFrame
 from aiortc.contrib.signaling import BYE, TcpSocketSignaling
 
@@ -24,7 +23,7 @@ CV_MINDIST = 10
 
 logger = logging.Logger("ping")
 
-def process_a(frame_queue, ball_x, ball_y, timestamp):
+def process_a(frame_queue: multiprocessing.Queue, ball_x, ball_y, timestamp):
     x_diff, y_diff = 0, 0
     while True:
         (t, frame) = frame_queue.get()
@@ -64,7 +63,7 @@ async def consume_signaling(
     elif isinstance(obj, aiortc.RTCIceCandidate):
         await pc.addIceCandidate(obj)
     return True
-    
+
 
 pc_channel: aiortc.RTCDataChannel|None = None
 pc_track: aiortc.VideoStreamTrack|None = None
@@ -116,6 +115,7 @@ async def run_answer():
                 })
                 pc_channel.send(data)
 
+
 pcs = set() 
 async def on_shutdown():
     # close peer connections
@@ -123,6 +123,7 @@ async def on_shutdown():
     await asyncio.gather(*coros)
     pcs.clear()
     exit()
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Ball bounce client demo")
