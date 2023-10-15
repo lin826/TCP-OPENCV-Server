@@ -6,6 +6,11 @@ import uuid
 import cv2
 import random
 import numpy as np
+
+im = np.random.random((800, 800, 3))
+cv2.imshow("server", im)
+cv2.waitKey(1)
+
 from av import VideoFrame
 from aiortc import RTCIceCandidate, RTCPeerConnection, RTCSessionDescription, VideoStreamTrack
 from aiortc.contrib.signaling import BYE, TcpSocketSignaling
@@ -71,8 +76,10 @@ async def consume_signaling(pc, signaling):
         await signaling.close()
         return False
     elif isinstance(obj, RTCSessionDescription):
+        print("Got remote description")
         await pc.setRemoteDescription(obj)
     elif isinstance(obj, RTCIceCandidate):
+        print("Got ICE")
         await pc.addIceCandidate(obj)
     return True
 
@@ -96,6 +103,7 @@ async def run_offer():
     # send offer
     await pc.setLocalDescription(await pc.createOffer())
     await signaling.send(pc.localDescription)
+    print("Sent local description")
     
     def on_message(message):
         # Calculate error and display
@@ -113,8 +121,16 @@ async def run_offer():
         # Redness reflects the value of MSE.
         color = [max(100, 255 - err)] * 2 + [255]
         circle_frame = CircleFrame().add_circle(data['x'], data['y'], color=color)
-        cv2.imshow("server", circle_frame.rgb_array)
-        cv2.waitKey(2)
+        try:
+            cv2.imshow("server", circle_frame.rgb_array)
+            cv2.waitKey(1)
+            # im = np.random.random((800, 800, 3))
+            # cv2.imshow("img", im)
+            # cv2.waitKey(1)
+            # asyncio.sleep(3)
+            pass        
+        except Exception as e:
+            print("Exception", e)
     channel.add_listener("message", on_message)
 
     @pc.on("connectionstatechange")

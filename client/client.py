@@ -4,6 +4,12 @@ import ctypes
 import json
 import logging
 import cv2
+import numpy as np
+
+im = np.random.random((800, 800, 3))
+cv2.imshow("client", im)
+cv2.waitKey(1)
+
 import aiortc
 import multiprocessing
 import threading
@@ -23,8 +29,11 @@ timestamp = multiprocessing.Value(ctypes.c_int, 0)
 
 def process_a():
     x_diff, y_diff = 0, 0
+    print("Process_a starts")
     while True:
+        print("Waiting for queue")
         (t, frame) = frame_queue.get()
+        print("Got something from the queue")
         if frame is None:
             continue
         # Process the frame with OpenCV to locate the ball and update ball_location
@@ -51,6 +60,7 @@ async def consume_signaling(
         return False
     elif isinstance(obj, aiortc.RTCSessionDescription):
         await pc.setRemoteDescription(obj)
+        print("Get remote description")
         if obj.type == "offer":
             answer = await pc.createAnswer()
             if answer is None:
@@ -59,6 +69,7 @@ async def consume_signaling(
             await pc.setLocalDescription(answer)
             await signaling.send(pc.localDescription)
     elif isinstance(obj, aiortc.RTCIceCandidate):
+        print("Get ICE")
         await pc.addIceCandidate(obj)
     return True
     
@@ -90,18 +101,27 @@ async def run_answer():
 
     while await consume_signaling(pc, signaling):
         while pc_track:
+            print("Recv frame")
             frame = await pc_track.recv()
+            print("Done recv frame")
+            print("Frame.shape: ", frame)
             cv_frame = cv2.cvtColor(frame.to_ndarray(), cv2.COLOR_YUV2BGR_I420)
+            print("Convert color and put to the queue")
             frame_queue.put((frame.pts, cv_frame))
+            print("Done adding to queue")
             cv2.imshow('client', cv_frame)
+            # print("Done imshow")
             cv2.waitKey(10)
+            # print("Done waitKey")
             if pc_channel:
                 data: str = json.dumps({
                     'pts': timestamp.value,
                     'x': ball_x.value,
                     'y': ball_y.value,
                 })
+                print("Sending data")
                 pc_channel.send(data)
+                print("Done sending data")
 
 pcs = set() 
 async def on_shutdown():
