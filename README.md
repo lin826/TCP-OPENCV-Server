@@ -1,4 +1,4 @@
-# Nimble Programming Challenge
+# Frame Generator
 
 ## Install & Run
 
